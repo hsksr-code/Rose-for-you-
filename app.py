@@ -1,100 +1,165 @@
 import streamlit as st
 import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib import cm
+import plotly.graph_objects as go
+import random
+import time
 
-# --- PAGE SETUP ---
-st.set_page_config(page_title="A Surprise For You", page_icon="🌹", layout="centered")
+# --- PAGE CONFIGURATION ---
+st.set_page_config(page_title="For My Valentine", page_icon="🌹", layout="wide")
 
-# Custom CSS to make it look elegant and hide the menu
+# --- CUSTOM CSS (The "Make it Pretty" Code) ---
 st.markdown("""
     <style>
-    .stApp {background-color: #0e1117;}
-    h1 {color: #ff4b4b; font-family: 'Helvetica', sans-serif;}
+    .stApp {
+        background-color: #000000;
+    }
+    h1 {
+        color: #ff4b4b;
+        font-family: 'Courier New', sans-serif;
+        text-shadow: 2px 2px 4px #000000;
+    }
     .stButton>button {
-        background-color: #ff4b4b; 
-        color: white; 
-        border-radius: 20px;
-        padding: 10px 24px;
+        background-color: #ff4b4b;
+        color: white;
+        border-radius: 30px;
         font-size: 20px;
-        border: none;
+        padding: 15px 30px;
+        border: 2px solid white;
+        box-shadow: 0px 0px 10px #ff4b4b;
     }
     .stButton>button:hover {
-        background-color: #ffcccb;
-        color: black;
+        background-color: white;
+        color: #ff4b4b;
+        border: 2px solid #ff4b4b;
     }
+    /* Hide standard Streamlit overlay */
+    header {visibility: hidden;}
+    footer {visibility: hidden;}
     </style>
     """, unsafe_allow_html=True)
 
-# --- SESSION STATE (To track if she clicked the button) ---
-if 'revealed' not in st.session_state:
-    st.session_state.revealed = False
+# --- SESSION STATE ---
+if 'page' not in st.session_state:
+    st.session_state.page = "welcome"
 
-# --- THE ROSE FUNCTION ---
-def draw_rose(color_map):
-    fig = plt.figure(figsize=(8, 8))
-    fig.patch.set_facecolor('#0e1117') # Match background
-    ax = fig.add_subplot(111, projection='3d')
-    ax.set_facecolor('#0e1117')
+# --- HELPER FUNCTIONS ---
 
-    # The Mathematics
-    [x, t] = np.meshgrid(np.array(range(25)) / 24.0, np.arange(0, 575.5, 0.5) / 575 * 17 * np.pi - 2 * np.pi)
+def get_rose_figure():
+    # High-Definition Mathematical Rose
+    theta = np.linspace(-2, 15 * np.pi, 600)  # Resolution
+    
+    # The Rose Mathematics (Parametric Equations)
+    # [x, t] setup
+    x = np.linspace(0, 1, 30)
+    t = np.linspace(0, 15*np.pi, 600)
+    x, t = np.meshgrid(x, t)
+    
     p = (np.pi / 2) * np.exp(-t / (8 * np.pi))
-    u = 1 - (1 - np.mod(3.6 * t, 2 * np.pi) / np.pi) ** 4 / 2
+    u = 1 - (1 - np.mod(3.3 * t, 2 * np.pi) / np.pi) ** 4 / 2
     y = 2 * (x ** 2 - x) ** 2 * np.sin(p)
     r = u * (x * np.sin(p) + y * np.cos(p))
     h = u * (x * np.cos(p) - y * np.sin(p))
 
-    xx = r * np.cos(t)
-    yy = r * np.sin(t)
-    zz = h
+    X = r * np.cos(t)
+    Y = r * np.sin(t)
+    Z = h
 
-    # Plot surface with selected color
-    ax.plot_surface(xx, yy, zz, rstride=1, cstride=1, cmap=color_map, linewidth=0, antialiased=True)
-    ax.set_axis_off()
+    # Create Plotly 3D Surface
+    fig = go.Figure(data=[go.Surface(
+        x=X, y=Y, z=Z,
+        colorscale=[[0, 'rgb(100,0,0)'], [0.5, 'rgb(200,0,0)'], [1, 'rgb(255,50,50)']], # Deep Red Gradient
+        opacity=0.9,
+        showscale=False,
+        contours_z=dict(show=True, usecolormap=True, highlightcolor="limegreen", project_z=True)
+    )])
+
+    # Style the "Camera" and Lighting
+    fig.update_layout(
+        scene=dict(
+            xaxis=dict(visible=False),
+            yaxis=dict(visible=False),
+            zaxis=dict(visible=False),
+            bgcolor='black'
+        ),
+        paper_bgcolor='black',
+        margin=dict(l=0, r=0, b=0, t=0),
+        scene_camera=dict(eye=dict(x=1.5, y=1.5, z=1.5)) # Initial view angle
+    )
     return fig
 
-# --- THE APP LOGIC ---
+def typewriter(text):
+    """Effect to type out text letter by letter"""
+    placeholder = st.empty()
+    typed_text = ""
+    for char in text:
+        typed_text += char
+        placeholder.markdown(f"<h3 style='color: white; text-align: center;'>{typed_text}</h3>", unsafe_allow_html=True)
+        time.sleep(0.05)
+    return placeholder
 
-if not st.session_state.revealed:
-    # Phase 1: The Mystery
-    st.markdown("<br><br><br>", unsafe_allow_html=True) # Spacing
-    st.markdown("<h1 style='text-align: center;'>Hey, I made something for you...</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: gray;'>It took some coding and math, but you deserve the effort.</p>", unsafe_allow_html=True)
+# --- PAGE 1: THE WELCOME ---
+if st.session_state.page == "welcome":
+    st.markdown("<br><br><br>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center;'>💌 You Have a Delivery</h1>", unsafe_allow_html=True)
     
-    col1, col2, col3 = st.columns([1,2,1])
+    col1, col2, col3 = st.columns([1, 1, 1])
     with col2:
-        if st.button("Click to Reveal Surprise 🎁"):
-            st.session_state.revealed = True
-            st.rerun() # Refresh to show phase 2
+        st.markdown("<br>", unsafe_allow_html=True)
+        # Using a form to center the button perfectly
+        if st.button("Open Gift 🎁"):
+            st.session_state.page = "main"
+            st.rerun()
 
-else:
-    # Phase 2: The Reveal
-    st.balloons() # DIGITAL BALLOONS ANIMATION!
+# --- PAGE 2: THE ROSE & INTERACTION ---
+elif st.session_state.page == "main":
     
-    st.markdown("<h1 style='text-align: center;'>Happy Rose Day! 🌹</h1>", unsafe_allow_html=True)
+    # 1. The Celebration Effect
+    st.balloons()
+
+    # 2. Title
+    st.markdown("<h1 style='text-align: center; font-size: 50px;'>Happy Rose Day! 🌹</h1>", unsafe_allow_html=True)
     
-    # Interactive Color Picker
-    st.markdown("<p style='text-align: center; color: white;'>Customize your rose:</p>", unsafe_allow_html=True)
-    color_choice = st.select_slider(
-        "Choose a color:",
-        options=["Red", "Pink", "Purple", "Blue", "Gold"],
-        value="Red"
-    )
+    # 3. Two Columns: Rose on Left, Love Letter/Reasons on Right
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        # Render the High-Quality Plotly Rose
+        fig = get_rose_figure()
+        st.plotly_chart(fig, use_container_width=True)
+        st.markdown("<p style='text-align: center; color: gray;'>Use your mouse to rotate and zoom into the petals.</p>", unsafe_allow_html=True)
 
-    # Map text choices to Matplotlib Colormaps
-    colormap_dict = {
-        "Red": cm.Reds,
-        "Pink": cm.RdPu,
-        "Purple": cm.BuPu,
-        "Blue": cm.Blues,
-        "Gold": cm.Wistia
-    }
+    with col2:
+        st.markdown("<br><br>", unsafe_allow_html=True)
+        st.markdown("### Why this rose?", unsafe_allow_html=True)
+        st.info("Because real flowers fade, but this code runs forever. Just like my feelings for you.")
+        
+        st.markdown("---")
+        
+        # INTERACTIVE: "Reasons I Love You" Generator
+        if 'reason' not in st.session_state:
+            st.session_state.reason = "Click the button below..."
+            
+        reasons = [
+            "Your smile makes my day brighter.",
+            "You are smarter than you think.",
+            "The way you laugh is my favorite sound.",
+            "You support me like no one else.",
+            "You are simply beautiful, inside and out.",
+            "Coding this was hard, but you are worth it.",
+            "I love how kind you are to others."
+        ]
+        
+        st.markdown("### ✨ Remind me why I'm special?")
+        if st.button("Tell me a reason ❤️"):
+            st.session_state.reason = random.choice(reasons)
+        
+        # Display the reason nicely
+        st.success(f"💖 {st.session_state.reason}")
 
-    # Draw the rose
-    with st.spinner("Generating your unique flower..."):
-        fig = draw_rose(colormap_dict[color_choice])
-        st.pyplot(fig)
-
-    st.markdown(f"<h3 style='text-align: center; color: white;'>This rose is defined by math, so it will never die. Just like my love for you.</h3>", unsafe_allow_html=True)
-                    
+    # 4. Music Player (Hidden or visible)
+    # You can change this URL to any song she likes!
+    st.audio("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3", format="audio/mp3", start_time=0)
+    
+    st.markdown("<br><br><br>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #555;'>Made with ❤️ and Python</p>", unsafe_allow_html=True)
+        
